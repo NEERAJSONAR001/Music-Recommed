@@ -1,94 +1,94 @@
 import numpy as np
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import (
-    Conv2D, MaxPooling2D,
-    Dense, Flatten, Dropout
-)
+import tensorflow as tf
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Dense, Dropout, GlobalAveragePooling2D
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from sklearn.metrics import classification_report, confusion_matrix
+from tensorflow.keras.applications import MobileNetV2
+from tensorflow.keras.optimizers import Adam
+from sklearn.metrics import classification_report
 
 TRAIN_DIR = "face_emotions/fer13/train"
 TEST_DIR  = "face_emotions/fer13/test"
 
-datagen = ImageDataGenerator(
-    rescale=1./255,           
-    rotation_range=10,         
-    width_shift_range=0.1,
-    height_shift_range=0.1,
-    zoom_range=0.1
+IMG_SIZE = (96, 96)
+BATCH_SIZE = 32
+
+
+train_gen = ImageDataGenerator(
+    rescale=1./255,
+    rotation_range=30,
+    width_shift_range=0.2,
+    height_shift_range=0.2,
+    zoom_range=0.2,
+    horizontal_flip=True
 )
 
-train_data = datagen.flow_from_directory(
+test_gen = ImageDataGenerator(rescale=1./255)
+
+train_data = train_gen.flow_from_directory(
     TRAIN_DIR,
-    target_size=(48, 48),
-    color_mode="grayscale",
-    batch_size=32,
+    target_size=IMG_SIZE,
+    color_mode="rgb",
+    batch_size=BATCH_SIZE,
     class_mode="categorical",
     shuffle=True
 )
 
-test_data = ImageDataGenerator(rescale=1./255).flow_from_directory(
+test_data = test_gen.flow_from_directory(
     TEST_DIR,
-    target_size=(48, 48),
-    color_mode="grayscale",
-    batch_size=32,
+    target_size=IMG_SIZE,
+    color_mode="rgb",
+    batch_size=BATCH_SIZE,
     class_mode="categorical",
     shuffle=False
 )
 
-print("Emotion Classes:", train_data.class_indices)
+NUM_CLASSES = train_data.num_classes
 
 
-model = Sequential()
+base_model = MobileNetV2(
+    include_top=False,
+    weights="imagenet",
+    input_shape=(96, 96, 3)
+)
 
-# Block 1
-model.add(Conv2D(32, (3,3), activation='relu', input_shape=(48,48,1)))
-model.add(MaxPooling2D((2,2)))
+for layer in base_model.layers:
+    layer.trainable = False
 
-# Block 2
-model.add(Conv2D(64, (3,3), activation='relu'))
-model.add(MaxPooling2D((2,2)))
+x = base_model.output
+x = GlobalAveragePooling2D()(x)
+x = Dense(512, activation="relu")(x)
+x = Dropout(0.5)(x)
+output = Dense(NUM_CLASSES, activation="softmax")(x)
 
-# Block 3
-model.add(Conv2D(128, (3,3), activation='relu'))
-model.add(MaxPooling2D((2,2)))
-
-
-model.add(Flatten())
-model.add(Dense(128, activation='relu'))
-model.add(Dropout(0.5))
-model.add(Dense(train_data.num_classes, activation='softmax'))
+model = Model(inputs=base_model.input, outputs=output)
 
 model.compile(
-    optimizer='adam',
-    loss='categorical_crossentropy',
-    metrics=['accuracy']
+    optimizer=Adam(learning_rate=1e-3),
+    loss="categorical_crossentropy",
+    metrics=["accuracy"]
 )
 
-model.summary()
+print("\n🔵 Stage 1: Training classifier head\n")
+model.fit(train_data, epochs=15, validation_data=test_data)
 
-history = model.fit(
-    train_data,
-    epochs=10,
-    validation_data=test_data
+
+for layer in base_model.layers[-40:]:
+    layer.trainable = True
+
+model.compile(
+    optimizer=Adam(learning_rate=1e-5),
+    loss="categorical_crossentropy",
+    metrics=["accuracy"]
 )
 
-test_loss, test_accuracy = model.evaluate(test_data)
-print(f"\nFinal Test Accuracy: {test_accuracy * 100:.2f}%")
+print("\n🟢 Stage 2: Fine-tuning top layers\n")
+model.fit(train_data, epochs=30, validation_data=test_data)
 
-# DETAILED METRICS
-y_true = test_data.classes
-y_pred = model.predict(test_data)
-y_pred = np.argmax(y_pred, axis=1)
 
-print("\nConfusion Matrix:")
-print(confusion_matrix(y_true, y_pred))
+loss, acc = model.evaluate(test_data)
+print(f"\n🔥 FINAL ACCURACY: {acc * 100:.2f}%")
 
-print("\nClassification Report:")
-print(classification_report(
-    y_true, y_pred,
-    target_names=test_data.class_indices.keys()
-))
 
-model.save("face_emotions/face_emotion_cnn_model.h5")
+model.save("face_emotions/face_emotion_mobilenetv2_70.h5")
 print("\nModel saved successfully.")
