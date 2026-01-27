@@ -1,11 +1,21 @@
 import pandas as pd
+import random
 
-songs_df = pd.read_csv("data/songs.csv")
+songs = pd.read_csv("music/songs.csv")
 
 def recommend_songs(emotion, n=3):
-    filtered = songs_df[songs_df["emotion"] == emotion]
+    mood_map = {
+        "sad": "happy",
+        "angry": "calm",
+        "neutral": "happy",
+        "surprise": "happy",
+        "happy": "happy"
+    }
 
-    if filtered.empty:
-        return None
+    target_mood = mood_map.get(emotion, "happy")
+    filtered = songs[songs["mood"] == target_mood]
 
-    return filtered.sample(min(n, len(filtered)))
+    if len(filtered) == 0:
+        return []
+
+    return filtered.sample(min(n, len(filtered))).to_dict("records")

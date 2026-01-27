@@ -6,9 +6,19 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.applications import MobileNetV2
 from tensorflow.keras.optimizers import Adam
 from sklearn.metrics import classification_report
+from sklearn.metrics import confusion_matrix,classification_report
 
-TRAIN_DIR = "face_emotions/fer13/train"
-TEST_DIR  = "face_emotions/fer13/test"
+EMOTION_LABELS = [
+    "surprise",  
+    "happy",    
+    "sad",       
+    "angry",     
+    "neutral"    
+]
+
+
+TRAIN_DIR = "face_emotions/raf/DATASET/train"
+TEST_DIR  = "face_emotions/raf/DATASET/test"
 
 IMG_SIZE = (96, 96)
 BATCH_SIZE = 32
@@ -33,6 +43,8 @@ train_data = train_gen.flow_from_directory(
     class_mode="categorical",
     shuffle=True
 )
+
+print("Train Class labels:", train_data.class_indices)
 
 test_data = test_gen.flow_from_directory(
     TEST_DIR,
@@ -88,6 +100,15 @@ model.fit(train_data, epochs=30, validation_data=test_data)
 
 loss, acc = model.evaluate(test_data)
 print(f"\n🔥 FINAL ACCURACY: {acc * 100:.2f}%")
+
+y_true = test_data.classes
+y_pred_probs = model.predict(test_data)
+y_pred = np.argmax(y_pred_probs, axis=1)
+print("\nClassification Report:")
+print(classification_report(y_true, y_pred, target_names=EMOTION_LABELS))
+
+print("\nConfusion Matrix:")
+print(confusion_matrix(y_true, y_pred))
 
 
 model.save("face_emotions/face_emotion_mobilenetv2_70.h5")

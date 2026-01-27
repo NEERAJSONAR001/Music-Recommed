@@ -1,24 +1,38 @@
-from tensorflow.keras.preprocessing.image import ImageDataGenerator 
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
-train_dir = "face_emotions/fer13/train"
-test_dir = "face_emotions/fer13/test"
+TRAIN_DIR = "face_emotions/raf/DATASET/train"
+TEST_DIR  = "face_emotions/raf/DATASET/test"
 
-datagen = ImageDataGenerator(rescale=1./255)
+IMG_SIZE = (96, 96)
+BATCH_SIZE = 32
 
-train_data = datagen.flow_from_directory(
-    train_dir,
-    target_size=(48, 48),
-    color_mode="grayscale",
-    batch_size=32,
-    class_mode="categorical"
+train_datagen = ImageDataGenerator(
+    rescale=1./255,
+    rotation_range=20,
+    width_shift_range=0.15,
+    height_shift_range=0.15,
+    zoom_range=0.15,
+    horizontal_flip=True
 )
 
-test_data = datagen.flow_from_directory(
-    test_dir,
-    target_size=(48, 48),
-    color_mode="grayscale",
-    batch_size=32,
-    class_mode="categorical"
+test_datagen = ImageDataGenerator(rescale=1./255)
+
+train_data = train_datagen.flow_from_directory(
+    TRAIN_DIR,
+    target_size=IMG_SIZE,
+    color_mode="rgb",
+    batch_size=BATCH_SIZE,
+    class_mode="categorical",
+    shuffle=True
+)
+
+test_data = test_datagen.flow_from_directory(
+    TEST_DIR,
+    target_size=IMG_SIZE,
+    color_mode="rgb",
+    batch_size=BATCH_SIZE,
+    class_mode="categorical",
+    shuffle=False
 )
 
 print("Class labels:", train_data.class_indices)
