@@ -1,184 +1,178 @@
-# import streamlit as st
-# from face_emotions.face_model import detect_face_emotion
-# from text_emotions.text_model import detect_text_emotion
-# from music_logic import recommend_songs
+from flask import Flask, render_template_string, request
+import subprocess
+import sys
+import os
+
+app = Flask(__name__)
+
+HTML = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Model Test App</title>
+    <style>
+        body {
+            font-family: Arial;
+            text-align: center;
+            margin-top: 100px;
+        }
+        button {
+            padding: 15px 30px;
+            margin: 20px;
+            font-size: 18px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎵 Model Testing App</h1>
+
+    <form method="post">
+        <button name="action" value="face">Test Face Model</button>
+        <button name="action" value="text">Test Text Model</button>
+    </form>
+
+    <p>{{ message }}</p>
+</body>
+</html>
+"""
+
+@app.route("/", methods=["GET", "POST"])
+    def home():
+    message = ""
+
+    if request.method == "POST":
+    action = request.form["action"]
+
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+    if action == "face":
+            message = "Starting Face Model..."
+            face_path = os.path.join(BASE_DIR, "face_emotions", "face_model.py")
+            subprocess.Popen([sys.executable, face_path])
+
+    elif action == "text":
+            message = "Starting Text Model..."
+            text_path = os.path.join(BASE_DIR, "text_emotions", "text_model.py")
+            subprocess.Popen([sys.executable, text_path])
 
 
-# if "logged_in" not in st.session_state:
-#     st.session_state.logged_in = False
+if __name__ == "__main__":
+    app.run(debug=True)
 
-# if "users" not in st.session_state:
-#     st.session_state.users = {}
+from flask import Flask, render_template_string, request
+import subprocess
+import sys
+import os
 
-# st.set_page_config(page_title="Emotion Music App")
+app = Flask(__name__)
 
-# if not st.session_state.logged_in:
+HTML = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Emotion Beats</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 
-#     tab1, tab2 = st.tabs(["Login", "Register"])
+    <style>
+        body {
+            background: linear-gradient(135deg, #FFF4B3, #FFD86B);
+            min-height: 100vh;
+            transition: background 0.6s ease-in-out;
+        }
 
-#     with tab1:
-#         user = st.text_input("Username")
-#         pwd = st.text_input("Password", type="password")
+        .glass {
+            backdrop-filter: blur(20px);
+            background: rgba(255,255,255,0.35);
+            border-radius: 24px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
 
-#         if st.button("Login"):
-#             if user in st.session_state.users and st.session_state.users[user] == pwd:
-#                 st.session_state.logged_in = True
-#                 st.rerun()
-#             else:
-#                 st.error("Invalid credentials")
+        .btn {
+            border-radius: 16px;
+            transition: all 0.3s ease;
+        }
 
-#     with tab2:
-#         new_user = st.text_input("New Username")
-#         new_pwd = st.text_input("New Password", type="password")
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
 
-#         if st.button("Register"):
-#             st.session_state.users[new_user] = new_pwd
-#             st.success("Registered! Please login.")
+        .fade-in {
+            animation: fadeIn 0.6s ease-in-out;
+        }
 
-#     st.stop()
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px);}
+            to { opacity: 1; transform: translateY(0);}
+        }
+    </style>
+</head>
 
-# st.title("🎵 Emotion-Based Music Recommendation App")
+<body class="flex items-center justify-center">
 
-# mode = st.radio("Choose emotion input:", ["Facial Emotion", "Text Emotion"])
+<div class="w-full max-w-4xl p-8 text-center">
 
-# emotion = None
+    <h1 class="text-5xl font-bold mb-4">🎧 Emotion Beats</h1>
+    <p class="text-lg mb-10 text-gray-700">
+        Music that understands you.
+    </p>
 
-# if mode == "Facial Emotion":
-#     if st.button("Detect Emotion from Face"):
-#         emotion, frame = detect_face_emotion()
-#         st.success(f"Detected Emotion: **{emotion}**")
+    <div class="glass p-10">
 
-# if mode == "Text Emotion":
-#     text = st.text_area("How are you feeling?")
-#     if st.button("Analyze Text"):
-#         emotion = detect_text_emotion(text)
-#         st.success(f"Detected Emotion: **{emotion}**")
+        <form method="post" class="flex flex-col md:flex-row justify-center gap-6 mb-8">
 
-# if emotion:
-#     st.subheader("🎧 Recommended Songs")
+            <button name="action" value="face"
+                class="btn px-8 py-4 bg-black text-white font-semibold">
+                📸 Scan Face
+            </button>
 
-#     songs = recommend_songs(emotion)
+            <button name="action" value="text"
+                class="btn px-8 py-4 bg-white text-black font-semibold border">
+                💬 Analyze Text
+            </button>
 
-#     if songs is not None:
-#         for _, row in songs.iterrows():
-#             st.markdown(f"""
-#             **🎵 {row['song_name']}**  
-#             Artist: {row['artist']}  
-#             Language: {row['language']}
-#             """)
-#     else:
-#         st.info("No songs found for this emotion.")
-import streamlit as st
-import cv2
+        </form>
 
-from face_emotions.face_model import detect_face_emotion
-from text_emotions.text_model import detect_text_emotion
-from music_logic import recommend_songs
-from text_emotions.text_model import detect_text_emotion
+        {% if message %}
+        <div class="fade-in">
+
+            <h2 class="text-2xl font-semibold mb-4">
+                {{ message }}
+            </h2>
+
+            <div class="mt-6">
+                <p class="text-xl mb-2">
+                    Emotion:
+                    <span class="font-bold capitalize text-black">
+                        {{ emotion }}
+                    </span>
+                </p>
+
+                <div class="w-full bg-gray-300 rounded-full h-4 mt-4">
+                    <div class="bg-black h-4 rounded-full transition-all duration-700"
+                        style="width: {{ confidence }}%">
+                    </div>
+                </div>
+
+                <p class="mt-2 text-gray-700">
+                    {{ confidence }}% Confidence
+                </p>
+
+            </div>
+
+        </div>
+        {% endif %}
+
+    </div>
+
+</div>
+
+</body>
+</html>
+"""
 
 
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
 
-if "users" not in st.session_state:
-    st.session_state.users = {}
-
-
-# PAGE CONFIG
-# -----------------------------
-st.set_page_config(
-    page_title="Emotion Music App",
-    layout="centered"
-)
-
-# -----------------------------
-# LOGIN / REGISTER
-# -----------------------------
-if not st.session_state.logged_in:
-
-    st.title("🎵 Emotion-Based Music App")
-
-    tab1, tab2 = st.tabs(["Login", "Register"])
-
-    with tab1:
-        username = st.text_input("Username")
-        password = st.text_input("Password", type="password")
-
-        if st.button("Login"):
-            if username in st.session_state.users and st.session_state.users[username] == password:
-                st.session_state.logged_in = True
-                st.success("Login successful!")
-                st.rerun()
-            else:
-                st.error("Invalid credentials")
-
-    with tab2:
-        new_user = st.text_input("New Username")
-        new_pass = st.text_input("New Password", type="password")
-
-        if st.button("Register"):
-            st.session_state.users[new_user] = new_pass
-            st.success("Registered successfully! Please login.")
-
-    st.stop()
-
-# -----------------------------
-# MAIN APP
-# -----------------------------
-st.title("🎧 Emotion-Based Music Recommendation")
-
-mode = st.radio(
-    "Choose Emotion Input Method:",
-    ["Facial Emotion", "Text Emotion"]
-)
-
-emotion = None
-
-# -----------------------------
-# FACE EMOTION
-# -----------------------------
-if mode == "Facial Emotion":
-    st.subheader("📷 Facial Emotion Detection")
-
-    if st.button("Detect Emotion from Face"):
-        emotion, music, frame = detect_face_emotion()
-
-        if frame is not None:
-            st.image(
-                cv2.cvtColor(frame, cv2.COLOR_BGR2RGB),
-                channels="RGB"
-            )
-            st.success(f"Detected Emotion: **{emotion}**")
-            st.info(f"🎵 Suggested Music Type: **{music}**")
-        else:
-            st.error("Could not access webcam")
-
-# -----------------------------
-# TEXT EMOTION
-# -----------------------------
-if mode == "Text Emotion":
-    st.subheader("✍️ Text Emotion Detection")
-
-    text = st.text_area("Type how you are feeling:")
-
-    if st.button("Analyze Text"):
-        emotion = detect_text_emotion(text)
-        st.success(f"Detected Emotion: **{emotion}**")
-
-# -----------------------------
-# SONG RECOMMENDATION (CSV)
-# -----------------------------
-if emotion:
-    st.subheader("🎶 Recommended Songs")
-
-    songs = recommend_songs(emotion)
-
-    if songs is not None:
-        for _, row in songs.iterrows():
-            st.markdown(f"""
-            **🎵 {row['song_name']}**  
-            Artist: {row['artist']}  
-            Language: {row['language']}
-            """)
-    else:
-        st.info("No songs found for this emotion.")
+if __name__ == "__main__":
+    app.run(debug=True)
